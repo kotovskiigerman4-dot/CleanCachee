@@ -18,7 +18,7 @@ jobs:
     
     - run: chmod +x ./gradlew
     
-    - run: ./gradlew assembleDebug
+    - run: ./gradlew assembleDebug -Dgradle.problems.reports.directory=/tmp --warning-mode none
     
     - uses: actions/upload-artifact@v4
       with:
