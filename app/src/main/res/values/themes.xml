@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Тема для API 34+ (Android 14+) -->
+    <style name="Theme.Cleancache" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryDark">@color/purple_700</item>
+        <item name="colorAccent">@color/teal_200</item>
+    </style>
 
-    <style name="Theme.Cleancache" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- ИЛИ если Material3 не работает, используйте эту тему (для API ниже 34) -->
+    <style name="Theme.Cleancache" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryDark">@color/purple_700</item>
+        <item name="colorAccent">@color/teal_200</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryDark</item>
+    </style>
 </resources>
