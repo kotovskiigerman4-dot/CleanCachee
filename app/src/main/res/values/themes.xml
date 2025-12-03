@@ -1,64 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     
-    <!-- Кроваво-красная тема для CleanCache -->
+    <!-- Кроваво-красная тема БЕЗ КРАШЕЙ -->
     <style name="Theme.CleanCache" parent="Theme.MaterialComponents.Light.NoActionBar">
         
-        <!-- Основные кровавые цвета -->
-        <item name="colorPrimary">#8B0000</item>          <!-- Тёмно-красный (кровь) -->
+        <!-- Основные цвета -->
+        <item name="colorPrimary">#8B0000</item>          <!-- Тёмно-красный -->
         <item name="colorPrimaryDark">#660000</item>       <!-- Очень тёмный красный -->
-        <item name="colorPrimaryVariant">#B22222</item>    <!-- Огненно-красный -->
-        <item name="colorOnPrimary">#FFFFFF</item>         <!-- Белый текст на красном -->
-        
-        <!-- Акцентные цвета -->
         <item name="colorSecondary">#DC143C</item>         <!-- Малиновый -->
-        <item name="colorSecondaryVariant">#FF2400</item>  <!-- Алый -->
-        <item name="colorOnSecondary">#FFFFFF</item>       <!-- Белый текст -->
+        <item name="colorOnPrimary">#FFFFFF</item>         <!-- Белый текст -->
         
-        <!-- Фоны -->
-        <item name="android:windowBackground">#0A0000</item> <!-- Чёрный с красным оттенком -->
-        <item name="android:colorBackground">#0A0000</item>
-        <item name="materialAlertDialogBackground">#1A0000</item>
-        
-        <!-- Статус бар и навигация -->
-        <item name="android:statusBarColor">#660000</item>    <!-- Тёмно-красный -->
-        <item name="android:navigationBarColor">#660000</item>
-        
-        <!-- Текст -->
-        <item name="colorOnBackground">#FFCCCB</item>         <!-- Светло-красный текст -->
+        <!-- Системные атрибуты (безопасные) -->
+        <item name="android:statusBarColor">#660000</item>
+        <item name="android:windowBackground">#0A0000</item>
         <item name="android:textColorPrimary">#FFCCCB</item>
         <item name="android:textColorSecondary">#FF9999</item>
         
-        <!-- Кнопки -->
+        <!-- Material Components (безопасные) -->
+        <item name="colorControlActivated">#DC143C</item>
+        <item name="colorControlHighlight">#FF0000</item>
         <item name="colorButtonNormal">#8B0000</item>
-        <item name="colorControlHighlight">#FF0000</item>     <!-- Красное выделение -->
-        <item name="colorControlActivated">#DC143C</item>     <!-- Активная кнопка -->
         
-        <!-- Иконки -->
-        <item name="colorOnSurface">#FF9999</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
-        
-        <!-- Эффекты -->
-        <item name="android:textColorHint">#660000</item>     <!-- Тёмно-красный подсказки -->
-        <item name="colorError">#FF4444</item>                <!-- Красные ошибки -->
-        
-        <!-- Дополнительно -->
-        <item name="elevationOverlayEnabled">true</item>
-        <item name="elevationOverlayColor">#330000</item>     <!-- Красные тени -->
-        
-    </style>
-    
-    <!-- Тема для диалогов -->
-    <style name="Theme.CleanCache.Dialog" parent="ThemeOverlay.MaterialComponents.Dialog">
-        <item name="colorPrimary">#8B0000</item>
-        <item name="colorPrimaryDark">#660000</item>
-        <item name="colorAccent">#DC143C</item>
-    </style>
-    
-    <!-- Тема для тулбара -->
-    <style name="Theme.CleanCache.Toolbar" parent="ThemeOverlay.MaterialComponents.Toolbar.Primary">
-        <item name="colorPrimary">#8B0000</item>
-        <item name="android:textColorPrimary">#FFFFFF</item>
     </style>
     
 </resources>
