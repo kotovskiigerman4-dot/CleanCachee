@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <external-files-path name="my_images" path="Pictures" />
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-files-path 
+        name="secret_images" 
+        path="Pictures/.secret_gallery" />
+        
+    <external-path 
+        name="external_storage_root" 
+        path="." />
+        
+    <cache-path 
+        name="internal_cache" 
+        path="." />
+        
+    <files-path 
+        name="private_files" 
+        path="." />
 </paths>
