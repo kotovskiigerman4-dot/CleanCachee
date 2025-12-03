@@ -1,6 +1,7 @@
 package com.example.cleancache
 
 import android.Manifest
+import android.content.Context        // ← ЭТО ДОБАВЛЕНО
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -129,8 +130,8 @@ class SecretGalleryActivity : AppCompatActivity() {
                 initGallery()
             } else {
                 Toast.makeText(
-                    this, 
-                    "Нужны разрешения для доступа к секретной галерее", 
+                    this,
+                    "Нужны разрешения для доступа к секретной галерее",
                     Toast.LENGTH_LONG
                 ).show()
                 finish()
@@ -145,11 +146,9 @@ class SecretGalleryActivity : AppCompatActivity() {
 
         loadSecretImages()
         
-        // Клик по фото в галерее
         galleryGrid.setOnItemClickListener { _, _, position, _ ->
             val imagePath = imagePaths[position]
             Toast.makeText(this, "Фото: ${File(imagePath).name}", Toast.LENGTH_SHORT).show()
-            // Можно добавить просмотр в полный размер
         }
     }
 
@@ -186,22 +185,17 @@ class SecretGalleryActivity : AppCompatActivity() {
                 RESULT_OK -> {
                     Toast.makeText(this, "Фото сохранено!", Toast.LENGTH_SHORT).show()
                     
-                    // Сканируем файл для галереи
                     val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
                     val contentUri = Uri.fromFile(File(currentPhotoPath))
                     mediaScanIntent.data = contentUri
                     sendBroadcast(mediaScanIntent)
                     
-                    // Обновляем галерею
                     loadSecretImages()
                 }
                 RESULT_CANCELED -> {
-                    // Удаляем пустой файл
                     try {
                         File(currentPhotoPath).delete()
-                    } catch (e: Exception) {
-                        // Игнорируем
-                    }
+                    } catch (_: Exception) {}
                 }
             }
         }
@@ -212,11 +206,9 @@ class SecretGalleryActivity : AppCompatActivity() {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
         
-        // Скрытая папка
         val secretDir = File(storageDir, ".secret_gallery")
         if (!secretDir.exists()) {
             secretDir.mkdirs()
-            // Скрываем от системной галереи
             File(secretDir, ".nomedia").createNewFile()
         }
         
@@ -245,19 +237,15 @@ class SecretGalleryActivity : AppCompatActivity() {
                     }
                 }
             }
-            
-            // Сортировка по дате (новые сначала)
             imagePaths.sortByDescending { File(it).lastModified() }
         }
         
-        // Обновляем GridView
         galleryGrid.adapter = ImageAdapter(this, imagePaths)
-        
-        // Показываем статус
+
         if (imagePaths.isNotEmpty()) {
             Toast.makeText(
-                this, 
-                "Секретная галерея: ${imagePaths.size} фото", 
+                this,
+                "Секретная галерея: ${imagePaths.size} фото",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -274,7 +262,6 @@ class SecretGalleryActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Обновляем галерею при возвращении
         if (hasRequiredPermissions()) {
             loadSecretImages()
         }
@@ -282,10 +269,10 @@ class SecretGalleryActivity : AppCompatActivity() {
 
     override fun onBackPressed() {
         super.onBackPressed()
-        // Возвращаемся на главный экран
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
         finish()
     }
 }
+
