@@ -3,14 +3,16 @@ package com.example.cleancache
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import android.widget.Button
-import android.widget.GridView
-import android.widget.Toast
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,6 +28,37 @@ class SecretGalleryActivity : AppCompatActivity() {
     private val REQUEST_GALLERY_PERMISSION = 202
     private lateinit var galleryGrid: GridView
     private lateinit var takePhotoButton: Button
+    private lateinit var imagePaths: MutableList<String>
+
+    // Внутренний класс ImageAdapter
+    inner class ImageAdapter(private val context: Context, private val paths: List<String>) : BaseAdapter() {
+        override fun getCount(): Int = paths.size
+        override fun getItem(position: Int): Any = paths[position]
+        override fun getItemId(position: Int): Long = position.toLong()
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+            val imageView: ImageView = if (convertView == null) {
+                ImageView(context).apply {
+                    layoutParams = ViewGroup.LayoutParams(250, 250)
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                }
+            } else {
+                convertView as ImageView
+            }
+
+            try {
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = 2
+                }
+                val bitmap = BitmapFactory.decodeFile(paths[position], options)
+                imageView.setImageBitmap(bitmap)
+            } catch (e: Exception) {
+                imageView.setImageResource(android.R.drawable.ic_menu_camera)
+            }
+
+            return imageView
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,12 +66,14 @@ class SecretGalleryActivity : AppCompatActivity() {
 
         galleryGrid = findViewById(R.id.galleryGrid)
         takePhotoButton = findViewById(R.id.takePhotoButton)
+        imagePaths = mutableListOf()
 
-        // Проверяем разрешения при запуске
-        checkPermissionsAndInit()
-    }
+        // Настройка GridView
+        galleryGrid.numColumns = 3
+        galleryGrid.verticalSpacing = 4
+        galleryGrid.horizontalSpacing = 4
 
-    private fun checkPermissionsAndInit() {
+        // Проверка разрешений
         if (hasRequiredPermissions()) {
             initGallery()
         } else {
@@ -48,21 +83,16 @@ class SecretGalleryActivity : AppCompatActivity() {
 
     private fun hasRequiredPermissions(): Boolean {
         val hasCamera = ContextCompat.checkSelfPermission(
-            this, 
-            Manifest.permission.CAMERA
+            this, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
 
         val hasStorage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+
             ContextCompat.checkSelfPermission(
-                this, 
-                Manifest.permission.READ_MEDIA_IMAGES
+                this, Manifest.permission.READ_MEDIA_IMAGES
             ) == PackageManager.PERMISSION_GRANTED
         } else {
-            // Android до 13
             ContextCompat.checkSelfPermission(
-                this, 
-                Manifest.permission.READ_EXTERNAL_STORAGE
+                this, Manifest.permission.READ_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED
         }
 
@@ -70,8 +100,9 @@ class SecretGalleryActivity : AppCompatActivity() {
     }
 
     private fun requestGalleryPermissions() {
-        val permissions = mutableListOf<String>()
-        permissions.add(Manifest.permission.CAMERA)
+        val permissions = mutableListOf(
+            Manifest.permission.CAMERA
+        )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
@@ -93,35 +124,33 @@ class SecretGalleryActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         
-        when (requestCode) {
-            REQUEST_GALLERY_PERMISSION -> {
-                val allGranted = grantResults.isNotEmpty() && 
-                                grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-                
-                if (allGranted) {
-                    initGallery()
-                } else {
-                    Toast.makeText(
-                        this, 
-                        "Не жми так часто.", 
-                        Toast.LENGTH_LONG
-                    ).show()
-                    finish()
-                }
+        if (requestCode == REQUEST_GALLERY_PERMISSION) {
+            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                initGallery()
+            } else {
+                Toast.makeText(
+                    this, 
+                    "Нужны разрешения для доступа к секретной галерее", 
+                    Toast.LENGTH_LONG
+                ).show()
+                finish()
             }
         }
     }
 
     private fun initGallery() {
         takePhotoButton.setOnClickListener {
-            if (hasRequiredPermissions()) {
-                dispatchTakePictureIntent()
-            } else {
-                requestGalleryPermissions()
-            }
+            dispatchTakePictureIntent()
         }
 
         loadSecretImages()
+        
+        // Клик по фото в галерее
+        galleryGrid.setOnItemClickListener { _, _, position, _ ->
+            val imagePath = imagePaths[position]
+            Toast.makeText(this, "Фото: ${File(imagePath).name}", Toast.LENGTH_SHORT).show()
+            // Можно добавить просмотр в полный размер
+        }
     }
 
     private fun dispatchTakePictureIntent() {
@@ -130,7 +159,7 @@ class SecretGalleryActivity : AppCompatActivity() {
         if (takePictureIntent.resolveActivity(packageManager) != null) {
             try {
                 val photoFile = createImageFile()
-                val photoURI: Uri = FileProvider.getUriForFile(
+                val photoURI = FileProvider.getUriForFile(
                     this,
                     "${packageName}.fileprovider",
                     photoFile
@@ -142,11 +171,7 @@ class SecretGalleryActivity : AppCompatActivity() {
                 startActivityForResult(takePictureIntent, REQUEST_CAMERA_CAPTURE)
                 
             } catch (ex: Exception) {
-                Toast.makeText(
-                    this, 
-                    "Ошибка при создании файла: ${ex.message}", 
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Ошибка: ${ex.message}", Toast.LENGTH_SHORT).show()
             }
         } else {
             Toast.makeText(this, "Нет приложения камеры", Toast.LENGTH_SHORT).show()
@@ -157,23 +182,26 @@ class SecretGalleryActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == REQUEST_CAMERA_CAPTURE) {
-            if (resultCode == RESULT_OK) {
-                Toast.makeText(this, "Фото сохранено в секретной галерее", Toast.LENGTH_SHORT).show()
-                // Обновляем галерею после съёмки
-                loadSecretImages()
-                
-                // Сканируем файл для добавления в медиа-библиотеку
-                val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-                val contentUri = Uri.fromFile(File(currentPhotoPath))
-                mediaScanIntent.data = contentUri
-                sendBroadcast(mediaScanIntent)
-                
-            } else if (resultCode == RESULT_CANCELED) {
-                // Удаляем пустой файл если фото не сделано
-                try {
-                    File(currentPhotoPath).delete()
-                } catch (e: Exception) {
-                    // Игнорируем ошибку удаления
+            when (resultCode) {
+                RESULT_OK -> {
+                    Toast.makeText(this, "Фото сохранено!", Toast.LENGTH_SHORT).show()
+                    
+                    // Сканируем файл для галереи
+                    val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                    val contentUri = Uri.fromFile(File(currentPhotoPath))
+                    mediaScanIntent.data = contentUri
+                    sendBroadcast(mediaScanIntent)
+                    
+                    // Обновляем галерею
+                    loadSecretImages()
+                }
+                RESULT_CANCELED -> {
+                    // Удаляем пустой файл
+                    try {
+                        File(currentPhotoPath).delete()
+                    } catch (e: Exception) {
+                        // Игнорируем
+                    }
                 }
             }
         }
@@ -184,13 +212,12 @@ class SecretGalleryActivity : AppCompatActivity() {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
         
-        // Создаём скрытую папку
-        val secretDir = File(storageDir, ".secret_photos")
+        // Скрытая папка
+        val secretDir = File(storageDir, ".secret_gallery")
         if (!secretDir.exists()) {
             secretDir.mkdirs()
-            // Скрываем папку (только для некоторых файловых менеджеров)
-            val nomedia = File(secretDir, ".nomedia")
-            nomedia.createNewFile()
+            // Скрываем от системной галереи
+            File(secretDir, ".nomedia").createNewFile()
         }
         
         val imageFile = File.createTempFile(
@@ -204,37 +231,58 @@ class SecretGalleryActivity : AppCompatActivity() {
     }
 
     private fun loadSecretImages() {
-        val images = mutableListOf<String>()
+        imagePaths.clear()
+        
         val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val secretDir = File(storageDir, ".secret_photos")
+        val secretDir = File(storageDir, ".secret_gallery")
         
         if (secretDir.exists() && secretDir.isDirectory) {
-            val imageFiles = secretDir.listFiles { file ->
-                file.isFile && (file.name.lowercase(Locale.getDefault()).endsWith(".jpg") || 
-                               file.name.lowercase(Locale.getDefault()).endsWith(".jpeg") ||
-                               file.name.lowercase(Locale.getDefault()).endsWith(".png"))
+            val files = secretDir.listFiles()
+            files?.let {
+                for (file in it) {
+                    if (file.isFile && isImageFile(file)) {
+                        imagePaths.add(file.absolutePath)
+                    }
+                }
             }
             
-            imageFiles?.sortedByDescending { it.lastModified() }?.forEach { file ->
-                images.add(file.absolutePath)
-            }
+            // Сортировка по дате (новые сначала)
+            imagePaths.sortByDescending { File(it).lastModified() }
         }
         
-        // Простой адаптер для демонстрации (замени на настоящий)
-        if (images.isNotEmpty()) {
-            Toast.makeText(this, "Найдено ${images.size} фото", Toast.LENGTH_SHORT).show()
-            
-            // Временный код - создай свой ImageAdapter
-            // galleryGrid.adapter = ImageAdapter(this, images)
-            
-        } else {
-            Toast.makeText(this, "Секретная галерея пуста", Toast.LENGTH_SHORT).show()
+        // Обновляем GridView
+        galleryGrid.adapter = ImageAdapter(this, imagePaths)
+        
+        // Показываем статус
+        if (imagePaths.isNotEmpty()) {
+            Toast.makeText(
+                this, 
+                "Секретная галерея: ${imagePaths.size} фото", 
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun isImageFile(file: File): Boolean {
+        val name = file.name.lowercase(Locale.getDefault())
+        return name.endsWith(".jpg") || 
+               name.endsWith(".jpeg") || 
+               name.endsWith(".png") ||
+               name.endsWith(".gif") ||
+               name.endsWith(".bmp")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Обновляем галерею при возвращении
+        if (hasRequiredPermissions()) {
+            loadSecretImages()
         }
     }
 
     override fun onBackPressed() {
         super.onBackPressed()
-        // Возвращаемся к главному экрану
+        // Возвращаемся на главный экран
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
