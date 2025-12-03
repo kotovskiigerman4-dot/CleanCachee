@@ -32,12 +32,10 @@ jobs:
     - name: Create file_paths.xml
       run: |
         mkdir -p app/src/main/res/xml
-        cat > app/src/main/res/xml/file_paths.xml << 'EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-files-path name="secret_gallery" path="Pictures" />
-</paths>
-EOF
+        echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/res/xml/file_paths.xml
+        echo '<paths xmlns:android="http://schemas.android.com/apk/res/android">' >> app/src/main/res/xml/file_paths.xml
+        echo '    <external-files-path name="secret_gallery" path="Pictures" />' >> app/src/main/res/xml/file_paths.xml
+        echo '</paths>' >> app/src/main/res/xml/file_paths.xml
     
     - name: Setup Gradle
       run: |
