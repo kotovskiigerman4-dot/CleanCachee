@@ -23,30 +23,23 @@ jobs:
     
     - name: Fix Android SDK issue
       run: |
-        # Создаём local.properties с правильным SDK путём
         echo "sdk.dir=$ANDROID_HOME" > local.properties
         echo "ndk.dir=$ANDROID_HOME/ndk" >> local.properties
-        echo "Android SDK установлен в: $ANDROID_HOME"
     
-    - name: Create required directories
+    - name: Create file_paths.xml
       run: |
-        # Создаём папки которые требуются
         mkdir -p app/src/main/res/xml
+        # Простое создание без HEREDOC
+        echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/res/xml/file_paths.xml
+        echo '<paths xmlns:android="http://schemas.android.com/apk/res/android">' >> app/src/main/res/xml/file_paths.xml
+        echo '    <external-files-path name="secret_gallery" path="Pictures" />' >> app/src/main/res/xml/file_paths.xml
+        echo '</paths>' >> app/src/main/res/xml/file_paths.xml
+        echo "✅ file_paths.xml создан"
+    
+    - name: Setup Gradle
+      run: |
         mkdir -p build/reports/problems
-        
-        # Создаём file_paths.xml если нет
-        if [ ! -f "app/src/main/res/xml/file_paths.xml" ]; then
-          cat > app/src/main/res/xml/file_paths.xml << 'EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-files-path name="secret_gallery" path="Pictures" />
-</paths>
-EOF
-          echo "✅ file_paths.xml создан"
-        fi
-        
-        # Создаём gradle.properties
-        cat > gradle.properties << EOF
+        cat > gradle.properties << 'EOF'
 org.gradle.configuration-cache=false
 gradle.problems.reports.directory=/tmp
 systemProp.gradle.problems.reports.directory=/tmp
@@ -61,50 +54,23 @@ EOF
     - name: Clean previous builds
       run: |
         ./gradlew clean 2>/dev/null || true
-        rm -rf ~/.gradle/caches/ 2>/dev/null || true
     
     - name: Build APK (force)
       id: build
       continue-on-error: true
       run: |
         set +e
-        
-        # Игнорируем предупреждения
-        export GRADLE_OPTS="-Dgradle.problems.reports.directory=/tmp"
-        
-        # Собираем APK
         ./gradlew assembleDebug --no-build-cache --warning-mode none 2>&1 | tee build.log
         
-        # Проверяем создался ли APK несмотря на ошибки
         if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-          echo "✅ APK СОЗДАН УСПЕШНО!"
-          echo "APK путь: app/build/outputs/apk/debug/app-debug.apk"
-          echo "Размер: $(stat -c%s app/build/outputs/apk/debug/app-debug.apk) байт"
+          echo "✅ APK СОЗДАН!"
           echo "apk_exists=true" >> $GITHUB_OUTPUT
-          exit 0  # Успех даже если Gradle ругался
+          exit 0
         else
           echo "❌ APK НЕ СОЗДАН"
-          echo "=== ПОСЛЕДНИЕ ОШИБКИ ==="
-          tail -50 build.log | grep -A10 -B10 "error\|ERROR\|FAILED"
           echo "apk_exists=false" >> $GITHUB_OUTPUT
           exit 1
         fi
-    
-    - name: Debug if failed
-      if: steps.build.outputs.apk_exists == 'false'
-      run: |
-        echo "=== ДЕТАЛЬНАЯ ДИАГНОСТИКА ==="
-        echo "1. Проверка структуры проекта:"
-        find . -name "*.xml" -path "*/res/*" | grep -v build
-        
-        echo "2. Проверка манифеста:"
-        grep -n "file_paths" app/src/main/AndroidManifest.xml
-        
-        echo "3. Проверка темы:"
-        find . -name "themes.xml" -type f | xargs cat 2>/dev/null || echo "themes.xml не найден"
-        
-        echo "4. Ошибки сборки:"
-        ./gradlew assembleDebug --stacktrace 2>&1 | tail -100
     
     - name: Upload APK if exists
       if: steps.build.outputs.apk_exists == 'true'
@@ -122,6 +88,4 @@ EOF
         path: |
           build.log
           app/build/reports/
-          gradle.properties
         if-no-files-found: ignore
-        retention-days: 7
