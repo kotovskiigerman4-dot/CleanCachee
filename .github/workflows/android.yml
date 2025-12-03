@@ -17,17 +17,31 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     
+    - name: Fix AndroidX
+      run: |
+        # Создаём gradle.properties в правильном месте
+        echo "android.useAndroidX=true" > gradle.properties
+        echo "android.enableJetifier=true" >> gradle.properties
+        echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
+        echo "kotlin.code.style=official" >> gradle.properties
+        
+        # И в app/ тоже (если нужно)
+        echo "android.useAndroidX=true" > app/gradle.properties || true
+        echo "android.enableJetifier=true" >> app/gradle.properties || true
+    
     - name: Create file_paths.xml
       run: |
         mkdir -p app/src/main/res/xml
-        echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/res/xml/file_paths.xml
-        echo '<paths xmlns:android="http://schemas.android.com/apk/res/android">' >> app/src/main/res/xml/file_paths.xml
-        echo '    <external-files-path name="secret_gallery" path="Pictures" />' >> app/src/main/res/xml/file_paths.xml
-        echo '</paths>' >> app/src/main/res/xml/file_paths.xml
+        cat > app/src/main/res/xml/file_paths.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-files-path name="secret_gallery" path="Pictures" />
+</paths>
+EOF
     
     - name: Setup Gradle
       run: |
-        echo "org.gradle.configuration-cache=false" > gradle.properties
+        echo "org.gradle.configuration-cache=false" >> gradle.properties
         echo "gradle.problems.reports.directory=/tmp" >> gradle.properties
         echo "systemProp.gradle.problems.reports.directory=/tmp" >> gradle.properties
     
