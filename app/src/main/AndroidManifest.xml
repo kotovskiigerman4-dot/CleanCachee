@@ -21,47 +21,31 @@
         android:maxSdkVersion="28" 
         tools:ignore="ScopedStorage" />
 
-    <!-- Для FileProvider (сохранение фото) -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
-        tools:ignore="ScopedStorage" />
-
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="Clean Cache"
-        android:theme="@style/Theme.CleanCache"
+        android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
         android:supportsRtl="true"
         android:requestLegacyExternalStorage="true"
         tools:targetApi="33"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
         
-        <!-- Главная активность (маскировка под очиститель) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.CleanCache"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            
-            <!-- Скрытый интент для активации по жесту -->
-            <intent-filter>
-                <action android:name="SECRET_ACTION" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
         </activity>
 
-        <!-- Секретная галерея (открывается по жесту) -->
         <activity 
             android:name=".SecretGalleryActivity"
-            android:theme="@style/Theme.CleanCache"
             android:screenOrientation="portrait"
-            android:exported="false"
-            android:noHistory="true" />
+            android:exported="false" />
         
-        <!-- FileProvider для сохранения фото -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -71,11 +55,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-        
-        <!-- Скрываем приложение из списка недавних (опционально) -->
-        <meta-data
-            android:name="android.app.usage.REASON"
-            android:value="system_tool" />
             
     </application>
 </manifest>
