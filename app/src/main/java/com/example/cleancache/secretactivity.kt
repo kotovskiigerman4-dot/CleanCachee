@@ -1,7 +1,7 @@
 package com.example.cleancache
 
 import android.Manifest
-import android.content.Context        // ← ЭТО ДОБАВЛЕНО
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -30,6 +30,9 @@ class SecretGalleryActivity : AppCompatActivity() {
     private lateinit var galleryGrid: GridView
     private lateinit var takePhotoButton: Button
     private lateinit var imagePaths: MutableList<String>
+
+    // ДОБАВЛЕНО: флаг для проверки настроек
+    private var permissionsAlreadyGranted = false
 
     // Внутренний класс ImageAdapter
     inner class ImageAdapter(private val context: Context, private val paths: List<String>) : BaseAdapter() {
@@ -74,15 +77,43 @@ class SecretGalleryActivity : AppCompatActivity() {
         galleryGrid.verticalSpacing = 4
         galleryGrid.horizontalSpacing = 4
 
-        // Проверка разрешений
-        if (hasRequiredPermissions()) {
-            initGallery()
-        } else {
-            requestGalleryPermissions()
+        // ДОБАВЛЕНО: проверка разрешений из настроек
+        checkPermissionsFromSettings()
+
+        // ИЗМЕНЕНО: всегда инициализируем галерею
+        initGallery()
+    }
+
+    // ДОБАВЛЕНО: проверка разрешений из настроек
+    private fun checkPermissionsFromSettings() {
+        try {
+            val hasCamera = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+
+            val hasStorage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.READ_MEDIA_IMAGES
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
+            }
+
+            permissionsAlreadyGranted = hasCamera && hasStorage
+        } catch (e: Exception) {
+            permissionsAlreadyGranted = false
         }
     }
 
     private fun hasRequiredPermissions(): Boolean {
+        // Если уже проверили в настройках, возвращаем true
+        if (permissionsAlreadyGranted) {
+            return true
+        }
+        
+        // Старая проверка для совместимости
         val hasCamera = ContextCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
@@ -101,6 +132,7 @@ class SecretGalleryActivity : AppCompatActivity() {
     }
 
     private fun requestGalleryPermissions() {
+        // Запрашиваем разрешения, но продолжаем работу в любом случае
         val permissions = mutableListOf(
             Manifest.permission.CAMERA
         )
@@ -116,6 +148,9 @@ class SecretGalleryActivity : AppCompatActivity() {
             permissions.toTypedArray(),
             REQUEST_GALLERY_PERMISSION
         )
+        
+        // ДОБАВЛЕНО: продолжаем работу даже без разрешений
+        initGallery()
     }
 
     override fun onRequestPermissionsResult(
@@ -126,21 +161,14 @@ class SecretGalleryActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         
         if (requestCode == REQUEST_GALLERY_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                initGallery()
-            } else {
-                Toast.makeText(
-                    this,
-                    "Нужны разрешения для доступа к секретной галерее",
-                    Toast.LENGTH_LONG
-                ).show()
-                finish()
-            }
+            // ДОБАВЛЕНО: всегда продолжаем работу
+            initGallery()
         }
     }
 
     private fun initGallery() {
         takePhotoButton.setOnClickListener {
+            // Всегда пытаемся сделать фото
             dispatchTakePictureIntent()
         }
 
@@ -275,4 +303,3 @@ class SecretGalleryActivity : AppCompatActivity() {
         finish()
     }
 }
-
