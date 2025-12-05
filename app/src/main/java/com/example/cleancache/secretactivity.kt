@@ -161,7 +161,7 @@ class SecretGalleryActivity : AppCompatActivity() {
     }
 
     // Чтение координат из фото
-    private fun getLocationFromPhoto(photoPath: String): String? {
+    fun getLocationFromPhoto(photoPath: String): String? {
         return try {
             val exif = ExifInterface(photoPath)
             val lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE)
@@ -187,7 +187,7 @@ class SecretGalleryActivity : AppCompatActivity() {
     }
     
     // Конвертер из градусов/минут/секунд в десятичные градусы
-    private fun convertToDecimal(coord: String, ref: String?): Double? {
+    fun convertToDecimal(coord: String, ref: String?): Double? {
         try {
             val parts = coord.split(",")
             if (parts.size != 3) return null
@@ -450,5 +450,75 @@ class SecretGalleryActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
         finish()
+    }
+}
+
+// Отдельный класс FullScreenImageActivity
+class FullScreenImageActivity : AppCompatActivity() {
+    
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_fullscreen_image)
+        
+        val imageView = findViewById<ImageView>(R.id.fullscreenImageView)
+        val backButton = findViewById<Button>(R.id.backButton)
+        val coordinatesText = findViewById<TextView>(R.id.coordinatesText)
+        val fileNameText = findViewById<TextView>(R.id.fileNameText)
+        
+        val imagePath = intent.getStringExtra("image_path")
+        
+        if (imagePath != null && File(imagePath).exists()) {
+            // Загружаем изображение
+            try {
+                val bitmap = BitmapFactory.decodeFile(imagePath)
+                imageView.setImageBitmap(bitmap)
+            } catch (e: Exception) {
+                imageView.setImageResource(android.R.drawable.ic_menu_camera)
+            }
+            
+            // Показываем имя файла
+            fileNameText.text = "Файл: ${File(imagePath).name}"
+            
+            // Получаем и показываем координаты
+            val coordinates = getLocationFromPhoto(imagePath)
+            if (coordinates != null) {
+                coordinatesText.text = coordinates
+                coordinatesText.visibility = TextView.VISIBLE
+            } else {
+                coordinatesText.text = "📍 Координаты не найдены"
+                coordinatesText.visibility = TextView.VISIBLE
+            }
+        } else {
+            Toast.makeText(this, "Ошибка: фото не найдено", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+        
+        backButton.setOnClickListener {
+            finish()
+        }
+    }
+    
+    private fun getLocationFromPhoto(photoPath: String): String? {
+        return try {
+            val exif = ExifInterface(photoPath)
+            val lat = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE)
+            val latRef = exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE_REF)
+            val lon = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE)
+            val lonRef = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF)
+            
+            if (lat != null && lon != null) {
+                // Используем метод из SecretGalleryActivity
+                val secretGallery = SecretGalleryActivity()
+                val latitude = secretGallery.convertToDecimal(lat, latRef)
+                val longitude = secretGallery.convertToDecimal(lon, lonRef)
+                
+                if (latitude != null && longitude != null) {
+                    return "📍 Координаты:\nШирота: ${"%.6f".format(latitude)}\nДолгота: ${"%.6f".format(longitude)}"
+                }
+            }
+            null
+        } catch (e: Exception) {
+            null
+        }
     }
 }
