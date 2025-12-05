@@ -50,6 +50,13 @@
             android:screenOrientation="portrait"
             android:exported="false" />
         
+        <!-- ДОБАВЛЕНО: Активность для полноэкранного просмотра фото -->
+        <activity 
+            android:name=".FullScreenImageActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
+            android:exported="false" />
+        
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
