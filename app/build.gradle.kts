@@ -1,6 +1,6 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    id("com.android.application") version "8.3.0"
+    id("org.jetbrains.kotlin.android") version "1.9.20"
 }
 
 android {
@@ -34,13 +34,13 @@ android {
 }
 
 dependencies {
-    implementation(libs.bundles.android.base)
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.10.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     
     // ДОБАВЛЕНО: Для работы с EXIF метаданными фотографий
     implementation("androidx.exifinterface:exifinterface:1.3.6")
     
-    // ДОБАВЛЕНО: Для работы с геолокацией (опционально, можно использовать стандартный LocationManager)
-    implementation("com.google.android.gms:play-services-location:21.0.1")
-    
-    testImplementation(libs.junit)
+    testImplementation("junit:junit:4.13.2")
 }
