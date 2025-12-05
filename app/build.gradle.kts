@@ -35,5 +35,12 @@ android {
 
 dependencies {
     implementation(libs.bundles.android.base)
+    
+    // ДОБАВЛЕНО: Для работы с EXIF метаданными фотографий
+    implementation("androidx.exifinterface:exifinterface:1.3.6")
+    
+    // ДОБАВЛЕНО: Для работы с геолокацией (опционально, можно использовать стандартный LocationManager)
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    
     testImplementation(libs.junit)
 }
