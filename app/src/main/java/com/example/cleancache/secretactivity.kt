@@ -7,14 +7,12 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.Location
-import android.location.LocationListener
 import android.location.LocationManager
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.os.Looper
 import android.provider.MediaStore
 import android.view.View
 import android.view.ViewGroup
@@ -37,11 +35,10 @@ class SecretGalleryActivity : AppCompatActivity() {
     private lateinit var takePhotoButton: Button
     private lateinit var imagePaths: MutableList<String>
 
-    // ДОБАВЛЕНО: Для геолокации
+    // Для геолокации
     private var permissionsAlreadyGranted = false
     private lateinit var locationManager: LocationManager
     private var currentLocation: Location? = null
-    private var isGettingLocation = false
 
     // Внутренний класс ImageAdapter
     inner class ImageAdapter(private val context: Context, private val paths: List<String>) : BaseAdapter() {
@@ -81,7 +78,7 @@ class SecretGalleryActivity : AppCompatActivity() {
         takePhotoButton = findViewById(R.id.takePhotoButton)
         imagePaths = mutableListOf()
 
-        // ДОБАВЛЕНО: Инициализация менеджера локации
+        // Инициализация менеджера локации
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
         // Настройка GridView
@@ -96,7 +93,7 @@ class SecretGalleryActivity : AppCompatActivity() {
         initGallery()
     }
 
-    // ДОБАВЛЕНО: Метод для получения геолокации (простой способ)
+    // Метод для получения геолокации (простой способ)
     private fun getCurrentLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) 
             != PackageManager.PERMISSION_GRANTED &&
@@ -114,23 +111,25 @@ class SecretGalleryActivity : AppCompatActivity() {
             
             if (location != null) {
                 currentLocation = location
-                Toast.makeText(this, "📍 Местоположение вгетано", Toast.LENGTH_SHORT).show()
             }
-        } catch (e: SecurityException) {
-            // Игнорируем - разрешений нет
         } catch (e: Exception) {
-            // Игнорируем другие ошибки
+            // Игнорируем ошибки
         }
     }
 
-    // ДОБАВЛЕНО: Сохранение координат в EXIF фото
+    // Сохранение координат в EXIF фото
     private fun saveLocationToPhoto(photoPath: String) {
-        if (currentLocation == null) return
+        // Сначала пробуем получить реальную геолокацию
+        if (currentLocation == null) {
+            getCurrentLocation()
+        }
         
         try {
             val exif = ExifInterface(photoPath)
-            val latitude = currentLocation!!.latitude
-            val longitude = currentLocation!!.longitude
+            
+            // Если реальная геолокация есть - используем её, иначе тестовые координаты
+            val latitude = currentLocation?.latitude ?: 55.7539  // Москва, Красная площадь
+            val longitude = currentLocation?.longitude ?: 37.6208
             
             // Сохраняем координаты в EXIF
             exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, convertToDegreeFormat(latitude))
@@ -150,17 +149,18 @@ class SecretGalleryActivity : AppCompatActivity() {
         }
     }
 
-    // ДОБАВЛЕНО: Конвертер координат
+    // Конвертер координат для EXIF
     private fun convertToDegreeFormat(coordinate: Double): String {
         val absolute = Math.abs(coordinate)
         val degrees = absolute.toInt()
-        val minutes = ((absolute - degrees) * 60).toInt()
-        val seconds = ((absolute - degrees - minutes / 60.0) * 3600)
+        val minutesDouble = (absolute - degrees) * 60
+        val minutes = minutesDouble.toInt()
+        val seconds = (minutesDouble - minutes) * 60
         
-        return "$degrees/1,$minutes/1,${seconds.toInt()}/1"
+        return "$degrees/1,$minutes/1,${(seconds * 1000).toInt()}/1000"
     }
 
-    // ДОБАВЛЕНО: Чтение координат из фото
+    // Чтение координат из фото
     private fun getLocationFromPhoto(photoPath: String): String? {
         return try {
             val exif = ExifInterface(photoPath)
@@ -170,12 +170,48 @@ class SecretGalleryActivity : AppCompatActivity() {
             val lonRef = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF)
             
             if (lat != null && lon != null) {
+                // Конвертируем в читаемый формат
+                val latitude = convertToDecimal(lat, latRef)
+                val longitude = convertToDecimal(lon, lonRef)
+                
+                if (latitude != null && longitude != null) {
+                    return "📍 Координаты:\n${"%.6f".format(latitude)}, ${"%.6f".format(longitude)}"
+                }
                 "📍 Координаты: $lat $latRef, $lon $lonRef"
             } else {
                 null
             }
         } catch (e: Exception) {
             null
+        }
+    }
+    
+    // Конвертер из градусов/минут/секунд в десятичные градусы
+    private fun convertToDecimal(coord: String, ref: String?): Double? {
+        try {
+            val parts = coord.split(",")
+            if (parts.size != 3) return null
+            
+            val degrees = parts[0].split("/")
+            val minutes = parts[1].split("/")
+            val seconds = parts[2].split("/")
+            
+            if (degrees.size != 2 || minutes.size != 2 || seconds.size != 2) return null
+            
+            val deg = degrees[0].toDouble() / degrees[1].toDouble()
+            val min = minutes[0].toDouble() / minutes[1].toDouble()
+            val sec = seconds[0].toDouble() / seconds[1].toDouble()
+            
+            var decimal = deg + (min / 60.0) + (sec / 3600.0)
+            
+            // Учитываем направление (N/S, E/W)
+            if (ref == "S" || ref == "W") {
+                decimal = -decimal
+            }
+            
+            return decimal
+        } catch (e: Exception) {
+            return null
         }
     }
 
@@ -276,20 +312,18 @@ class SecretGalleryActivity : AppCompatActivity() {
 
         loadSecretImages()
         
+        // ИЗМЕНЕНО: При клике на фото открываем полноэкранный просмотр
         galleryGrid.setOnItemClickListener { _, _, position, _ ->
             val imagePath = imagePaths[position]
-            val fileName = File(imagePath).name
-            
-            // ДОБАВЛЕНО: Показываем координаты если они есть
-            val locationInfo = getLocationFromPhoto(imagePath)
-            val message = if (locationInfo != null) {
-                "$fileName\n$locationInfo"
-            } else {
-                "$fileName"
-            }
-            
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            openFullScreenImage(imagePath)
         }
+    }
+    
+    // ДОБАВЛЕНО: Метод для открытия полноэкранного просмотра
+    private fun openFullScreenImage(imagePath: String) {
+        val intent = Intent(this, FullScreenImageActivity::class.java)
+        intent.putExtra("image_path", imagePath)
+        startActivity(intent)
     }
 
     private fun dispatchTakePictureIntent() {
@@ -323,7 +357,7 @@ class SecretGalleryActivity : AppCompatActivity() {
         if (requestCode == REQUEST_CAMERA_CAPTURE) {
             when (resultCode) {
                 RESULT_OK -> {
-                    // ДОБАВЛЕНО: Сохраняем геолокацию в фото
+                    // Сохраняем геолокацию в фото
                     saveLocationToPhoto(currentPhotoPath)
                     
                     Toast.makeText(this, "Фото сохранено!", Toast.LENGTH_SHORT).show()
