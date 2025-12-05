@@ -20,6 +20,10 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
         android:maxSdkVersion="28" 
         tools:ignore="ScopedStorage" />
+    
+    <!-- ДОБАВЛЕНО: Разрешения для геолокации -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
